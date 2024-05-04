@@ -1,4 +1,6 @@
 ﻿
+using SDK.Shared.Dataanotations;
+using SDK.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace SDK.Shared.Entities
@@ -10,10 +12,14 @@ namespace SDK.Shared.Entities
         public string Email { get; set; } = null!;
 
         [Required]
-        [StringLength(128, MinimumLength = 6, ErrorMessage = "The password must have between 6 and 14 characters.")]
+        [SensitiveData]
+        [StringLength(128, MinimumLength = 6, ErrorMessage = "La contraseña debe tener entre 6 y 14 caracteres.")]
         public string Password { get; set; } = null!;
 
         [Required]
         public bool IsAdmin { get; set; }
+
+        [Required]
+        public EnumRecordStatus Status { get; set; }
     }
 }
