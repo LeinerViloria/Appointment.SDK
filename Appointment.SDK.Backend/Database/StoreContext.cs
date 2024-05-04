@@ -1,7 +1,7 @@
 ﻿
 using Microsoft.EntityFrameworkCore;
 
-namespace SDK.Backend.Database
+namespace Appointment.SDK.Backend.Database
 {
     public class StoreContext(DbContextOptions options) : DbContext(options)
     {

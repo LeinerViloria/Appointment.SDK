@@ -12,7 +12,7 @@
   </ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\SDK.Shared\SDK.Shared.csproj" />
+		<ProjectReference Include="..\Appointment.SDK.Shared\Appointment.SDK.Shared.csproj" />
 	</ItemGroup>
 
 </Project>

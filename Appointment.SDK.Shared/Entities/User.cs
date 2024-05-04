@@ -1,9 +1,9 @@
 ﻿
-using SDK.Shared.Dataanotations;
-using SDK.Shared.Enums;
+using Appointment.SDK.Dataanotations;
+using Appointment.Globals.Enums;
 using System.ComponentModel.DataAnnotations;
 
-namespace SDK.Shared.Entities
+namespace Appointment.SDK.Entities
 {
     public class User : BaseEntity<int>
     {

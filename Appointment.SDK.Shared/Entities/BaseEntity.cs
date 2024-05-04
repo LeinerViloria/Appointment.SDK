@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace SDK.Shared.Entities
+namespace Appointment.SDK.Entities
 {
     public abstract class BaseEntity<T>
     {

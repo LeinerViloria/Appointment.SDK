@@ -1,5 +1,5 @@
 ﻿
-namespace SDK.Shared.Enums
+namespace Appointment.Globals.Enums
 {
     public enum EnumRecordStatus
     {
