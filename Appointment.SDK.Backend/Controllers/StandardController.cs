@@ -7,5 +7,10 @@ namespace Appointment.SDK.Backend.Controllers
     [ApiController]
     public abstract class StandardController : ControllerBase
     {
+        [HttpGet]
+        public string HelloWorld()
+        {
+            return $"Hello world! Soy {GetType().Name}";
+        }
     }
 }
