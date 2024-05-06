@@ -1,0 +1,31 @@
+﻿@inherits LayoutComponentBase
+
+<PageTitle>Home - SDK</PageTitle>
+
+<ErrorBoundary>
+    <ChildContent>
+        <DxGridLayout>
+            <Rows>
+                <DxGridLayoutRow />
+                <DxGridLayoutRow />
+            </Rows>
+
+            <Items>
+                <DxGridLayoutItem Row="0">
+                    <Template>
+                        <p>Header</p>
+                    </Template>
+                </DxGridLayoutItem>
+
+                <DxGridLayoutItem Row="1">
+                    <Template>
+                        @Body
+                    </Template>
+                </DxGridLayoutItem>
+            </Items>
+        </DxGridLayout>
+    </ChildContent>
+    <ErrorContent>
+        <p>Ocurrió un error no controlado</p>
+    </ErrorContent>
+</ErrorBoundary>
