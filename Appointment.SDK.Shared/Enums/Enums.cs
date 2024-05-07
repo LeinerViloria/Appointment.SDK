@@ -6,4 +6,11 @@ namespace Appointment.Globals.Enums
         Active,
         Inactive,
     }
+
+    public enum EnumGender
+    {
+        NotSpecified,
+        Male,
+        Female
+    }
 }
