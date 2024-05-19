@@ -4,6 +4,7 @@ using System.Linq.Dynamic.Core;
 using System.Net;
 using Appointment.SDK.Backend.Database;
 using Appointment.SDK.Backend.Utilities;
+using Appointment.SDK.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -37,19 +38,71 @@ namespace Appointment.SDK.Backend.Controllers
         [HttpPost]
         public virtual IActionResult Create([FromBody] T Item)
         {
-            return Ok();
+            using(var context = CreateContext())
+            {
+                context.Set<T>().Add(Item);
+                context.SaveChanges();
+                return Ok(Item);
+            }
+        }
+
+        [HttpPost("addRange")]
+        public virtual IActionResult AddRange([FromBody] T[] Items)
+        {
+            using(var context = CreateContext())
+            {
+                context.Set<T>().AddRange(Items);
+                context.SaveChanges();
+                return Ok(Items);
+            }
         }
 
         [HttpPut]
         public virtual IActionResult Update([FromBody] T Item)
         {
-            return Ok();
+            var Rowid = typeof(T).GetProperty("Rowid")!
+                    .GetValue(Item);
+
+            using(var context = CreateContext())
+            {   
+                var BdItem = context.Set<T>()
+                    .Where("Rowid == @0", Rowid)
+                    .First();
+
+                // var EntryItem = context.Entry(BdItem);
+                // foreach (var lProperty in EntryItem.Metadata.GetProperties().Where(x => x.IsConcurrencyToken))
+                // {
+                //     EntryItem.OriginalValues[lProperty] = Item.GetType()
+                //         .GetProperty(lProperty.Name)!
+                //         .GetValue(Item);
+                // }
+
+                var FieldsToUpdate = typeof(T).GetProperties()
+                    .Select(x => x.Name);
+
+                context.Entry(BdItem).CurrentValues.SetValues(Item);
+                foreach (var relatedProperty in FieldsToUpdate)
+                {
+                    var Property = typeof(T).GetProperty(relatedProperty)!;
+                    Property.SetValue(BdItem, Property.GetValue(Item));
+                }
+
+                context.SaveChanges();
+
+                return Ok(Item);
+            }
         }
 
         [HttpDelete("{Rowid}")]
         public virtual IActionResult Delete(int Rowid)
         {
-            return Ok();
+            using(var context = CreateContext())
+            {
+                var Result = context.Set<T>()
+                    .Where("Rowid == @0", Rowid)
+                    .ExecuteDelete();
+                return Ok(Result);
+            }
         }
 
         [HttpGet("getData")]
