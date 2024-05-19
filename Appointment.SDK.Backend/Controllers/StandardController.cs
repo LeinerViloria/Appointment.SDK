@@ -120,7 +120,16 @@ namespace Appointment.SDK.Backend.Controllers
                     var Property = Filters[i].Name;
                     var Value = HttpContext.Request.Query[Property];
 
-                    Query = Query.Where($"{Property} == @{i}", Value!);
+                    if (typeof(T).GetProperty(Property)?.PropertyType == typeof(string))
+                    {
+                        // Si la propiedad es de tipo string, aplicamos el filtro sin distinguir entre mayúsculas y minúsculas
+                        Query = Query.Where($"({Property}).ToLower().Contains(\"{Value}\".ToLower())");
+                    }
+                    else
+                    {
+                        // Para otras propiedades, aplicamos el filtro normalmente
+                        Query = Query.Where($"{Property} == @{i}", Value!);
+                    }
                 }
 
                 return Ok(Query.ToList());
