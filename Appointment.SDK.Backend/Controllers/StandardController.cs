@@ -69,14 +69,6 @@ namespace Appointment.SDK.Backend.Controllers
                     .Where("Rowid == @0", Rowid)
                     .First();
 
-                // var EntryItem = context.Entry(BdItem);
-                // foreach (var lProperty in EntryItem.Metadata.GetProperties().Where(x => x.IsConcurrencyToken))
-                // {
-                //     EntryItem.OriginalValues[lProperty] = Item.GetType()
-                //         .GetProperty(lProperty.Name)!
-                //         .GetValue(Item);
-                // }
-
                 var FieldsToUpdate = typeof(T).GetProperties()
                     .Select(x => x.Name);
 
@@ -121,15 +113,9 @@ namespace Appointment.SDK.Backend.Controllers
                     var Value = HttpContext.Request.Query[Property];
 
                     if (typeof(T).GetProperty(Property)?.PropertyType == typeof(string))
-                    {
-                        // Si la propiedad es de tipo string, aplicamos el filtro sin distinguir entre mayúsculas y minúsculas
                         Query = Query.Where($"({Property}).ToLower().Contains(\"{Value}\".ToLower())");
-                    }
                     else
-                    {
-                        // Para otras propiedades, aplicamos el filtro normalmente
                         Query = Query.Where($"{Property} == @{i}", Value!);
-                    }
                 }
 
                 return Ok(Query.ToList());
