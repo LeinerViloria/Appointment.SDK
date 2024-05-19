@@ -1,5 +1,6 @@
 ﻿
 using System.Collections;
+using System.Linq.Dynamic.Core;
 using System.Net;
 using Appointment.SDK.Backend.Database;
 using Appointment.SDK.Backend.Utilities;
@@ -61,7 +62,15 @@ namespace Appointment.SDK.Backend.Controllers
                 var Query = context.Set<T>()
                     .AsNoTracking();
 
-                return Ok();
+                for (int i = 0; i < Filters.Count; i++)
+                {
+                    var Property = Filters[i].Name;
+                    var Value = HttpContext.Request.Query[Property];
+
+                    Query = Query.Where($"{Property} == @{i}", Value!);
+                }
+
+                return Ok(Query.ToList());
             }
         }
     }
