@@ -1,4 +1,5 @@
 ﻿
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Appointment.SDK.Backend.Controllers
@@ -8,6 +9,7 @@ namespace Appointment.SDK.Backend.Controllers
     public abstract class StandardController : ControllerBase
     {
         [HttpGet]
+        [Authorize]
         public string HelloWorld()
         {
             return $"Hello world! Soy {GetType().Name}";
