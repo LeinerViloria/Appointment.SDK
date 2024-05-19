@@ -1,18 +1,68 @@
 ﻿
-using Microsoft.AspNetCore.Authorization;
+using System.Collections;
+using System.Net;
+using Appointment.SDK.Backend.Database;
+using Appointment.SDK.Backend.Utilities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Appointment.SDK.Backend.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
-    public abstract class StandardController : ControllerBase
+    public abstract class StandardControllerBase(IServiceProvider serviceProvider) : ControllerBase
     {
-        [HttpGet]
-        [Authorize]
-        public string HelloWorld()
+        protected StoreContext CreateContext()
         {
-            return $"Hello world! Soy {GetType().Name}";
+            dynamic dbFactory = serviceProvider.GetService(typeof(IDbContextFactory<StoreContext>))!;
+
+            var context = dbFactory.CreateDbContext();
+
+            return context;
+        }
+
+        [HttpGet]
+        public string HelloWorld() =>
+            $"Hello world! Soy el controlador ({GetType().Name})";  
+    }
+
+    public abstract class StandardController(IServiceProvider serviceProvider) : StandardControllerBase(serviceProvider)
+    {
+
+        
+    }
+
+    public abstract class StandardController<T>(IServiceProvider serviceProvider) : StandardControllerBase(serviceProvider) where T : class
+    {
+        [HttpPost]
+        public virtual IActionResult Create([FromBody] T Item)
+        {
+            return Ok();
+        }
+
+        [HttpPut]
+        public virtual IActionResult Update([FromBody] T Item)
+        {
+            return Ok();
+        }
+
+        [HttpDelete("{Rowid}")]
+        public virtual IActionResult Delete(int Rowid)
+        {
+            return Ok();
+        }
+
+        [HttpGet("getData")]
+        public virtual IActionResult GetData()
+        {
+            var Filters = HttpContext.Request.Query.GetPropertiesByParams(typeof(T));
+
+            using(var context = CreateContext())
+            {
+                var Query = context.Set<T>()
+                    .AsNoTracking();
+
+                return Ok();
+            }
         }
     }
 }

@@ -15,6 +15,13 @@ namespace Appointment.SDK.Backend.Configuration
             var ConnectionString = configurationManager.GetConnectionString("ConnectionString")!;
 
             services.AddDbContextFactory<T>((sp, opt) => DbContextOptions(sp, opt, ConnectionString), ServiceLifetime.Transient);
+
+            services.AddTransient(typeof(IDbContextFactory<StoreContext>), x => {
+                var RealContextFactory = typeof(IDbContextFactory<>)
+                    .MakeGenericType(typeof(T));
+                var Factory = x.GetRequiredService(RealContextFactory);
+                return Factory;
+            });
         }
 
         public static void UseGoogleAuthentication(this IServiceCollection services, IConfigurationManager configurationManager)
@@ -34,7 +41,7 @@ namespace Appointment.SDK.Backend.Configuration
                 });
         }
 
-        static void DbContextOptions(IServiceProvider sp, DbContextOptionsBuilder options, string ConnectionString)
+        public static void DbContextOptions(IServiceProvider sp, DbContextOptionsBuilder options, string ConnectionString)
         {
             var DbInstance = (IDatabase) ActivatorUtilities.CreateInstance(sp, typeof(Postgresql), options, ConnectionString);
             DbInstance.SetConnection();
