@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Title>Appointment.SDK.Shared</Title>
+    <VersionPrefix>1.0.1</VersionPrefix>
   </PropertyGroup>
 
 </Project>
