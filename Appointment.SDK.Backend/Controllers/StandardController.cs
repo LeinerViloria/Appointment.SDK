@@ -1,18 +1,24 @@
 ﻿
-using System.Collections;
+using NsDataAnnotations = System.ComponentModel.DataAnnotations;
 using System.Linq.Dynamic.Core;
-using System.Net;
 using Appointment.SDK.Backend.Database;
 using Appointment.SDK.Backend.Utilities;
-using Appointment.SDK.Entities;
+using Appointment.SDK.Backend.Validations;
+using FluentValidation;
+using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 
 namespace Appointment.SDK.Backend.Controllers
 {
+    [Route("api/[controller]")]
     [ApiController]
     public abstract class StandardControllerBase(IServiceProvider serviceProvider) : ControllerBase
     {
+        protected readonly IServiceProvider serviceProvider = serviceProvider;
+
         protected StoreContext CreateContext()
         {
             dynamic dbFactory = serviceProvider.GetService(typeof(IDbContextFactory<StoreContext>))!;
@@ -33,11 +39,40 @@ namespace Appointment.SDK.Backend.Controllers
         
     }
 
-    public abstract class StandardController<T>(IServiceProvider serviceProvider) : StandardControllerBase(serviceProvider) where T : class
+    public abstract class StandardController<T, V>(IServiceProvider serviceProvider) : StandardControllerBase(serviceProvider)
+        where T : class
+        where V : BaseControllerValidator<T>
     {
+        private void Validate(T Item)
+        {
+            var Errors = new List<NsDataAnnotations.ValidationResult>();
+
+            var DataAnnotations = NsDataAnnotations.Validator.TryValidateObject(Item, new NsDataAnnotations.ValidationContext(Item), Errors);
+
+            if(!DataAnnotations)
+                throw new ArgumentNullException(JsonConvert.SerializeObject(Errors.Select(x => x.ErrorMessage)));
+
+            V ValidatorInstance = ActivatorUtilities.CreateInstance<V>(serviceProvider);
+
+            ValidationResult result;
+            try
+            {
+                result = ValidatorInstance.Validate(Item);
+            }
+            catch (AsyncValidatorInvokedSynchronouslyException)
+            {
+                result = ValidatorInstance.ValidateAsync(Item).GetAwaiter().GetResult();
+            }
+
+            if(!result.IsValid)
+                throw new ArgumentNullException(JsonConvert.SerializeObject(result.Errors));
+        }
+
         [HttpPost]
         public virtual IActionResult Create([FromBody] T Item)
         {
+            Validate(Item);
+
             using(var context = CreateContext())
             {
                 context.Set<T>().Add(Item);
@@ -49,6 +84,11 @@ namespace Appointment.SDK.Backend.Controllers
         [HttpPost("addRange")]
         public virtual IActionResult AddRange([FromBody] T[] Items)
         {
+            foreach (var Item in Items)
+            {
+                Validate(Item);
+            }
+
             using(var context = CreateContext())
             {
                 context.Set<T>().AddRange(Items);
@@ -63,8 +103,10 @@ namespace Appointment.SDK.Backend.Controllers
             var Rowid = typeof(T).GetProperty("Rowid")!
                     .GetValue(Item);
 
+            Validate(Item);
+
             using(var context = CreateContext())
-            {   
+            {                   
                 var BdItem = context.Set<T>()
                     .Where("Rowid == @0", Rowid)
                     .First();
