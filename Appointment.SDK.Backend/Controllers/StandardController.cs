@@ -9,7 +9,6 @@ using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
 
 namespace Appointment.SDK.Backend.Controllers
 {
@@ -43,18 +42,23 @@ namespace Appointment.SDK.Backend.Controllers
         where T : class
         where V : BaseControllerValidator<T>
     {
-        private void Validate(T Item)
+        private void Validate(ref ValidationResult result, T Item)
         {
             var Errors = new List<NsDataAnnotations.ValidationResult>();
 
             var DataAnnotations = NsDataAnnotations.Validator.TryValidateObject(Item, new NsDataAnnotations.ValidationContext(Item), Errors);
 
             if(!DataAnnotations)
-                throw new ArgumentNullException(JsonConvert.SerializeObject(Errors.Select(x => x.ErrorMessage)));
+            {
+                result = new ValidationResult(Errors.Select(x => new ValidationFailure(){
+                    ErrorMessage = x.ErrorMessage,
+                }));
+
+                return;
+            }
 
             V ValidatorInstance = ActivatorUtilities.CreateInstance<V>(serviceProvider);
 
-            ValidationResult result;
             try
             {
                 result = ValidatorInstance.Validate(Item);
@@ -63,15 +67,16 @@ namespace Appointment.SDK.Backend.Controllers
             {
                 result = ValidatorInstance.ValidateAsync(Item).GetAwaiter().GetResult();
             }
-
-            if(!result.IsValid)
-                throw new ArgumentNullException(JsonConvert.SerializeObject(result.Errors));
         }
 
         [HttpPost]
         public virtual IActionResult Create([FromBody] T Item)
         {
-            Validate(Item);
+            ValidationResult result = new();
+            Validate(ref result, Item);
+
+            if(!result.IsValid)
+                return BadRequest(result.Errors);
 
             using(var context = CreateContext())
             {
@@ -84,9 +89,14 @@ namespace Appointment.SDK.Backend.Controllers
         [HttpPost("addRange")]
         public virtual IActionResult AddRange([FromBody] T[] Items)
         {
+            ValidationResult result = new();
+
             foreach (var Item in Items)
             {
-                Validate(Item);
+                Validate(ref result, Item);
+
+                if(!result.IsValid)
+                    return BadRequest(new{Item, result.Errors});
             }
 
             using(var context = CreateContext())
@@ -100,10 +110,14 @@ namespace Appointment.SDK.Backend.Controllers
         [HttpPut]
         public virtual IActionResult Update([FromBody] T Item)
         {
+            ValidationResult result = new();
+            Validate(ref result, Item);
+
+            if(!result.IsValid)
+                return BadRequest(result.Errors);
+
             var Rowid = typeof(T).GetProperty("Rowid")!
                     .GetValue(Item);
-
-            Validate(Item);
 
             using(var context = CreateContext())
             {                   
