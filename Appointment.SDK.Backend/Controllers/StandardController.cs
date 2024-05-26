@@ -222,10 +222,10 @@ namespace Appointment.SDK.Backend.Controllers
 
                     if (typeof(T).GetProperty(Property)?.PropertyType == typeof(string))
                         Query = Query.Where($"({Property}).ToLower().Contains(\"{Value}\".ToLower())");
-                    else if($"{Value}".EndsWith("_relationship"))
+                    else if($"{Value}".EndsWith("_rs"))
                         Query = Query.Include(Property);
                     else
-                        Query = Query.Where($"{Property} == @{i}", Value!);
+                        Query = Query.Where($"{Property} == @0", Value!);
 
 
                 }
