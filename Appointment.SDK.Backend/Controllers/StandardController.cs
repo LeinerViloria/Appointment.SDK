@@ -9,6 +9,7 @@ using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Http;
 
 namespace Appointment.SDK.Backend.Controllers
 {
@@ -76,13 +77,30 @@ namespace Appointment.SDK.Backend.Controllers
             Validate(ref result, Item);
 
             if(!result.IsValid)
-                return BadRequest(result.Errors);
+                return BadRequest(result.Errors.ToDictionary(x => x.PropertyName, x=>new List<string>() { x.ErrorMessage }));
 
             using(var context = CreateContext())
             {
-                context.Set<T>().Add(Item);
-                context.SaveChanges();
-                return Ok(Item);
+                try
+                {
+                    context.Set<T>().Add(Item);
+                    context.SaveChanges();
+                    return Ok(Item);
+                }
+                catch(DbUpdateException Exception)
+                {
+                    dynamic Error = Exception.InnerException!;
+
+                    var Property = ((string)Error.ConstraintName).Split("_").Last().Replace("Rowid", "");
+
+                    return StatusCode(StatusCodes.Status400BadRequest, new
+                    {
+                        Errors = new Dictionary<string, List<string>>()
+                    {
+                        { Property, [$"Invalid {Property}"] }
+                    }
+                    });
+                }
             }
         }
 
@@ -96,14 +114,31 @@ namespace Appointment.SDK.Backend.Controllers
                 Validate(ref result, Item);
 
                 if(!result.IsValid)
-                    return BadRequest(new{Item, result.Errors});
+                    return BadRequest(result.Errors.ToDictionary(x => x.PropertyName, x => new List<string>() { x.ErrorMessage }));
             }
 
             using(var context = CreateContext())
             {
-                context.Set<T>().AddRange(Items);
-                context.SaveChanges();
-                return Ok(Items);
+                try
+                {
+                    context.Set<T>().AddRange(Items);
+                    context.SaveChanges();
+                    return Ok(Items);
+                }
+                catch (DbUpdateException Exception)
+                {
+                    dynamic Error = Exception.InnerException!;
+
+                    var Property = ((string)Error.ConstraintName).Split("_").Last().Replace("Rowid", "");
+
+                    return StatusCode(StatusCodes.Status400BadRequest, new
+                    {
+                        Errors = new Dictionary<string, List<string>>()
+                    {
+                        { Property, [$"Invalid {Property}"] }
+                    }
+                    });
+                }
             }
         }
 
@@ -114,7 +149,7 @@ namespace Appointment.SDK.Backend.Controllers
             Validate(ref result, Item);
 
             if(!result.IsValid)
-                return BadRequest(result.Errors);
+                return BadRequest(result.Errors.ToDictionary(x => x.PropertyName, x => new List<string>() { x.ErrorMessage }));
 
             var Rowid = typeof(T).GetProperty("Rowid")!
                     .GetValue(Item);
@@ -135,9 +170,26 @@ namespace Appointment.SDK.Backend.Controllers
                     Property.SetValue(BdItem, Property.GetValue(Item));
                 }
 
-                context.SaveChanges();
+                try
+                {
+                    context.SaveChanges();
 
-                return Ok(Item);
+                    return Ok(Item);
+                }
+                catch (DbUpdateException Exception)
+                {
+                    dynamic Error = Exception.InnerException!;
+
+                    var Property = ((string)Error.ConstraintName).Split("_").Last().Replace("Rowid", "");
+
+                    return StatusCode(StatusCodes.Status400BadRequest, new
+                    {
+                        Errors = new Dictionary<string, List<string>>()
+                    {
+                        { Property, [$"Invalid {Property}"] }
+                    }
+                    });
+                }
             }
         }
 
@@ -170,8 +222,14 @@ namespace Appointment.SDK.Backend.Controllers
 
                     if (typeof(T).GetProperty(Property)?.PropertyType == typeof(string))
                         Query = Query.Where($"({Property}).ToLower().Contains(\"{Value}\".ToLower())");
-                    else
+                    else if(Property.EndsWith("_relationship"))
+                    {
+                        var RealProperty = Property.Replace("_relationship", "");
+                        Query = Query.Include(RealProperty);
+                    }else
                         Query = Query.Where($"{Property} == @{i}", Value!);
+
+
                 }
 
                 return Ok(Query.ToList());
