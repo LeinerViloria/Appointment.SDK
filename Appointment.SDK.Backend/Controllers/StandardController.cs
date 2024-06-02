@@ -10,6 +10,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Http;
+using System.Linq.Expressions;
+using System.Collections.Generic;
+using Appointment.SDK.Entities;
 
 namespace Appointment.SDK.Backend.Controllers
 {
@@ -212,22 +215,43 @@ namespace Appointment.SDK.Backend.Controllers
 
             using(var context = CreateContext())
             {
+                var CollectionType = typeof(ICollection<T>);
                 var Query = context.Set<T>()
                     .AsNoTracking();
+
+                bool HasCollection = false;
 
                 for (int i = 0; i < Filters.Count; i++)
                 {
                     var Property = Filters[i].Name;
+                    var PropertyType = typeof(T).GetProperty(Property)?.PropertyType;
                     var Value = HttpContext.Request.Query[Property];
 
-                    if (typeof(T).GetProperty(Property)?.PropertyType == typeof(string))
+                    if (PropertyType == typeof(string))
                         Query = Query.Where($"({Property}).ToLower().Contains(\"{Value}\".ToLower())");
                     else if($"{Value}".EndsWith("_rs"))
+                    {
                         Query = Query.Include(Property);
+
+                        if (HasCollection) continue;
+                            
+                        HasCollection = PropertyType!.GetProperties()
+                          .Any(x => x.PropertyType == CollectionType);
+                    }
                     else
                         Query = Query.Where($"{Property} == @0", Value!);
+                }
 
+                if(HasCollection)
+                {
+                    var Properties = typeof(T).GetProperties();
 
+                    var SelectFields = string.Join(",", Properties.Select(x =>
+                    {
+                        return x.Name;
+                    }));
+
+                    Query = Query.Select<T>($"new({SelectFields})");
                 }
 
                 return Ok(Query.ToList());
