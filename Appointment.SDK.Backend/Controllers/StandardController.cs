@@ -234,9 +234,17 @@ namespace Appointment.SDK.Backend.Controllers
                         Query = Query.Include(Property);
 
                         if (HasCollection) continue;
-                            
-                        HasCollection = PropertyType!.GetProperties()
-                          .Any(x => x.PropertyType == CollectionType);
+
+                        if(PropertyType.Name == typeof(ICollection<>).Name)
+                        {
+                            HasCollection = PropertyType.GenericTypeArguments[0]!
+                                .GetProperties()
+                                .Any(x => x.PropertyType == typeof(T));
+                        }else
+                        {
+                            HasCollection = PropertyType!.GetProperties()
+                                .Any(x => x.PropertyType == CollectionType);
+                        }
                     }
                     else
                         Query = Query.Where($"{Property} == @0", Value!);
